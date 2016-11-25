@@ -6,6 +6,7 @@ const schema = buildSchema(`
     hello: String
     tasks: [Task]
     task (id: Int!): Task
+    addTask (text: String) : Task
   }
 
   type Task {
@@ -15,7 +16,7 @@ const schema = buildSchema(`
   }
 `)
 
-const tasks = [
+let tasks = [
   {
     id: 1,
     text: 'Tarefa 1',
@@ -39,17 +40,52 @@ const resolvers = {
   task: ({ id }) => {
     return tasks.find(task => task.id === id)
   },
+  addTask: ({ text }) => {
+
+    // Procedural way.
+    // const newItem = {
+    //   id: tasks.length+1,
+    //   text,
+    //   status: false,
+    // }
+    //
+    // tasks.push(newItem)
+    //
+    // return newItem
+
+    // Best way :P
+    tasks = tasks.concat({
+      id: tasks.length+1,
+      text,
+      status: false,
+    })
+
+    return tasks[tasks.length-1]
+  }
 }
 
 // Run the GraphQL query.
 const tasksQuery = `{
-  tasks {
+
+  tasksBefore: tasks {
     id
     text
     status
   }
 
   task(id: 1) {
+    id
+    text
+    status
+  }
+
+  addTask(text: "Nova task" ) {
+    id
+    text
+    status
+  }
+
+  tasks {
     id
     text
     status
