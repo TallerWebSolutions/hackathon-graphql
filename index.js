@@ -6,13 +6,16 @@ const schema = buildSchema(`
     hello: String
     tasks: [Task]
     task (id: Int!): Task
-    addTask (text: String) : Task
   }
 
   type Task {
     id: Int!
     text: String
     status: Boolean
+  }
+
+  type Mutation {
+    addTask (text: String) : Task
   }
 `)
 
@@ -65,27 +68,9 @@ const resolvers = {
 }
 
 // Run the GraphQL query.
-const tasksQuery = `{
-
-  tasksBefore: tasks {
-    id
-    text
-    status
-  }
-
-  task(id: 1) {
-    id
-    text
-    status
-  }
+const tasksQuery = `mutation {
 
   addTask(text: "Nova task" ) {
-    id
-    text
-    status
-  }
-
-  tasks {
     id
     text
     status
