@@ -6,12 +6,19 @@ const schema = buildSchema(`
     hello: String
     tasks: [Task]
     task (id: Int!): Task
+    lists: List
   }
 
   type Task {
     id: Int!
     text: String
     status: Boolean
+    list: List
+  }
+
+  type List {
+    id: Int!
+    name: String
   }
 
   type Mutation {
@@ -23,12 +30,31 @@ let tasks = [
   {
     id: 1,
     text: 'Tarefa 1',
-    status: false
+    status: false,
+    list: 1
   },
   {
     id: 2,
     text: 'Tarefa 2',
-    status: true
+    status: true,
+    list: 2
+  },
+  {
+    id: 3,
+    text: 'Tarefa 3',
+    status: true,
+    list: 1
+  }
+]
+
+let lists = [
+  {
+    id: 1,
+    name: 'Lista 1',
+  },
+  {
+    id: 2,
+    name: 'Lista 2',
   }
 ]
 
@@ -64,17 +90,50 @@ const resolvers = {
     })
 
     return tasks[tasks.length-1]
+  },
+  Task: (args) => {
+    console.log(args)
+    process.exit()
+  },
+  lists: (args) => {
+    console.log(args)
+    return lists[0]
+  },
+  list: (args) => {
+    console.log(args)
+    return lists[0]
   }
+
 }
 
 // Run the GraphQL query.
-const tasksQuery = `mutation {
+const tasksQuery = `query {
+
+  tasks {
+    id
+    text
+    status
+    list {
+      id
+      name
+    }
+  }
+
+  lists {
+    id
+    name
+  }
+
+}`
+
+const tasksMutation = `mutation {
 
   addTask(text: "Nova task" ) {
     id
     text
     status
   }
+
 }`
 
 graphql(schema, tasksQuery, resolvers).then(response => {
