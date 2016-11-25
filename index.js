@@ -1,30 +1,7 @@
 const { graphql, buildSchema } = require('graphql')
+const { makeExecutableSchema } = require('graphql-tools')
 
-// Construct a schema, using GraphQL schema language.
-const schema = buildSchema(`
-  type Query {
-    hello: String
-    tasks: [Task]
-    task (id: Int!): Task
-    lists: List
-  }
 
-  type Task {
-    id: Int!
-    text: String
-    status: Boolean
-    list: List
-  }
-
-  type List {
-    id: Int!
-    name: String
-  }
-
-  type Mutation {
-    addTask (text: String) : Task
-  }
-`)
 
 let tasks = [
   {
@@ -54,88 +31,123 @@ let lists = [
   },
   {
     id: 2,
-    name: 'Lista 2',
+    name: 'Lista 2'
   }
 ]
 
-// The root provides a resolver function for each API endpoint.
-const resolvers = {
-  hello: () => {
-    return 'Hello world!'
-  },
-  tasks: () => {
-    return tasks
-  },
-  task: ({ id }) => {
-    return tasks.find(task => task.id === id)
-  },
-  addTask: ({ text }) => {
-
-    // Procedural way.
-    // const newItem = {
-    //   id: tasks.length+1,
-    //   text,
-    //   status: false,
-    // }
-    //
-    // tasks.push(newItem)
-    //
-    // return newItem
-
-    // Best way :P
-    tasks = tasks.concat({
-      id: tasks.length+1,
-      text,
-      status: false,
-    })
-
-    return tasks[tasks.length-1]
-  },
-  Task: (args) => {
-    console.log(args)
-    process.exit()
-  },
-  lists: (args) => {
-    console.log(args)
-    return lists[0]
-  },
-  list: (args) => {
-    console.log(args)
-    return lists[0]
+// Construct a schema, using GraphQL schema language.
+const schema = `
+  type Query {
+    hello: String
+    tasks: [Task]
+    task (id: Int!): Task
+    lists: [List]
   }
 
+  type Task {
+    id: Int!
+    text: String
+    status: Boolean
+    list: List
+  }
+
+  type List {
+    id: Int!
+    name: String
+    tasks: [Task]
+  }
+
+  input TaskInput {
+    text: String!
+  }
+
+  type Mutation {
+    addTask (text: String): Task
+    addList (name: String!, tasks: [TaskInput]): List
+  }
+
+  schema {
+    query: Query
+    mutation: Mutation
+  }
+`
+
+const prepareTask = list => task => Object.assign(task, {
+  id: tasks.length,
+  status: false,
+  list,
+})
+
+// The root provides a resolver function for each API endpoint.
+const resolvers = {
+  Query: {
+    hello: () => 'Hello world!',
+    lists: () => lists,
+    tasks: () => tasks,
+    task: ({ id }) => tasks.find(task => task.id === id),
+  },
+
+  Mutation: {
+    addTask: (root, { text }) => {
+
+      // Procedural way.
+      // const newItem = {
+      //   id: tasks.length+1,
+      //   text,
+      //   status: false,
+      // }
+      //
+      // tasks.push(newItem)
+      //
+      // return newItem
+
+      // Best way :P
+      tasks = tasks.concat({
+        id: tasks.length+1,
+        text,
+        status: false,
+      })
+
+      return tasks[tasks.length-1]
+    },
+    addList: (root, { name, tasks: newTasks = [] }) => {
+      const newList = {
+        name,
+        id: lists.length,
+      }
+
+      lists.push(newList)
+
+      newTasks
+        .map(prepareTask(newList.id))
+        .forEach(task => tasks.push(task))
+
+      return newList
+    }
+  },
+
+  Task: {
+    list: task => lists.find(list => list.id === task.list)
+  },
+
+  List: {
+    tasks: ({ id }) => tasks.filter(task => task.list === id)
+  }
 }
 
 // Run the GraphQL query.
-const tasksQuery = `query {
-
-  tasks {
-    id
-    text
-    status
-    list {
-      id
-      name
-    }
-  }
-
-  lists {
-    id
+const query = `mutation {
+  addList(name: "List 3", tasks: [{ text: "Task 3" }]) {
     name
   }
+}
+`
 
-}`
+const exectableSchema = makeExecutableSchema({
+  typeDefs: schema,
+  resolvers
+})
 
-const tasksMutation = `mutation {
-
-  addTask(text: "Nova task" ) {
-    id
-    text
-    status
-  }
-
-}`
-
-graphql(schema, tasksQuery, resolvers).then(response => {
+graphql(exectableSchema, query).then(response => {
   console.log(JSON.stringify(response, null, 2))
 })
